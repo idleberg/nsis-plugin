@@ -1,0 +1,18 @@
+[package]
+name = "xtask"
+version = "0.0.0"
+description = "Build matrix driver, Plugins/ layout and packaging"
+publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+
+# xtask is a developer tool, never shipped, so the size-tuned workspace release
+# profile would only slow it down.
+[package.metadata]

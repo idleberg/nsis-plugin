@@ -1,0 +1,77 @@
+name: Template
+
+# The raw template does not build: its files hold cargo-generate placeholders.
+# Generate a plug-in, point it at this checkout's crate and run the generated
+# project's own CI steps against it, so a crate change that breaks the template
+# fails here rather than after the next release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ci-check
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: crate
+
+      - name: Install cargo-generate
+        working-directory: .
+        run: cargo install --locked cargo-generate
+
+      # Next to the checkout, not inside it: inside, the crate's workspace
+      # would claim the generated package.
+      - name: Generate a plug-in
+        working-directory: .
+        run: >
+          cargo generate --path crate/template --name ci-check --silent
+          --define plugin_description=CI --define author=CI
+
+      - name: Use this checkout's crate
+        run: printf '\n[patch.crates-io]\nnsis-plugin = { path = "../crate" }\n' >> Cargo.toml
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+        with:
+          working_directory: ci-check
+
+      - name: Install mingw-w64 and Wine
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 wine wine32
+
+      - uses: nsis-dev/setup-nsis@99783963764acafc24a5e3335ddfce26d03c20a2 # v1.2.1
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          workspaces: ci-check
+
+      - name: Run checks
+        run: |
+          rustup component add rustfmt clippy
+          mise run checks
+
+      - name: Build every variant
+        run: mise run dist
+
+      - name: Check size budget
+        run: mise run size
+
+      - name: Smoke test
+        env:
+          WINEDEBUG: -all
+        run: mise run smoke
+
+      - name: Show the log
+        if: always()
+        run: cat dist/smoke/smoke.log || true

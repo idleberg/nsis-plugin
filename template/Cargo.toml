@@ -1,0 +1,35 @@
+[package]
+name = "{{project-name}}"
+version = "0.1.0"
+description = "{{plugin_description}}"
+authors = ["{{author}}"]
+edition = "2024"
+license = "MIT"
+publish = false
+
+[lib]
+# The DLL file name is the plug-in namespace in a script: `{{crate_name}}::Hello`.
+name = "{{crate_name}}"
+crate-type = ["cdylib"]
+
+[dependencies]
+nsis-plugin = { version = "0.1", default-features = false, features = ["mem-intrinsics"] }
+
+[dev-dependencies]
+# The fake-installer harness, for `cargo test` only, so it never lands in a
+# shipped DLL.
+nsis-plugin = { version = "0.1", default-features = false, features = ["testing"] }
+
+[features]
+default = ["unicode"]
+unicode = ["nsis-plugin/unicode"]
+ansi = ["nsis-plugin/ansi"]
+
+# A plug-in DLL is embedded in every installer built with it, so size matters
+# more than it usually does.
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

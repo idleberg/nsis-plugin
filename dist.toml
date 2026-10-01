@@ -1,0 +1,55 @@
+# Configuration for `cargo xtask dist`.
+
+[dist]
+# Cargo packages to build. Each produces one DLL per variant.
+packages = ["hello"]
+
+# Toolchain for the Windows targets.
+#   "gnu"  — mingw-w64, cross-compiles from macOS and Linux. The local loop.
+#   "msvc" — native on Windows; elsewhere via cargo-xwin. The release artifacts.
+toolchain = "gnu"
+
+# Where the Plugins/ tree is assembled.
+out-dir = "dist"
+
+# Variants to build, named exactly as `get_target_suffix` in Source/build.cpp
+# names them. Anything omitted here is skipped.
+#
+# x86-ansi is deliberately absent: NSIS 3 defaults to Unicode, and an ANSI DLL
+# only serves installers that still say `Unicode false`. Opt in by adding it below, or with `cargo xtask dist --variant
+# x86-ansi`.
+#
+# arm64-unicode is deliberately absent: NSIS ships no arm64 makensis or exehead
+# yet, so the DLL can be built but not run, let alone tested end to end. Opt in
+# by adding it below, or for one build with `cargo xtask dist --variant
+# arm64-unicode`. Building it also needs an aarch64-windows linker, which
+# mingw-w64 does not provide — use `toolchain = "msvc"` with cargo-xwin.
+variants = ["x86-unicode", "amd64-unicode"]
+
+# Maximum DLL size in bytes, per toolchain and variant. `cargo xtask dist`
+# fails when a build exceeds its budget, because size creep is invisible until
+# an installer author notices.
+#
+# The budgets are what they are, not what we would like: raise one only when
+# you mean to.
+
+# The release artifacts. MSVC uses SEH, so nothing pulls in an unwinder.
+[size-budget.msvc]
+x86-ansi = 24576
+x86-unicode = 24576
+amd64-unicode = 24576
+arm64-unicode = 24576
+
+# The local development artifacts, and deliberately looser for 32-bit.
+#
+# i686-pc-windows-gnu unwinds with DWARF, so rustc's `rsbegin.o` calls
+# `__register_frame_info`, which drags in libgcc_eh, which drags in the UCRT and
+# winpthreads — roughly 40 KB of machinery that `panic = "abort"` never uses.
+# x86_64 unwinds with SEH and has none of it, which is why the 64-bit DLL is a
+# quarter of the size. A nightly `-Z build-std` build removes it on 32-bit too;
+# the shipped MSVC artifacts do not have the problem at all.
+[size-budget.gnu]
+x86-ansi = 65536
+x86-unicode = 65536
+amd64-unicode = 24576
+arm64-unicode = 24576

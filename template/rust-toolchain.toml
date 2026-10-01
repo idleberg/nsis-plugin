@@ -1,0 +1,8 @@
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+
+# rustup installs these on the first cargo invocation, so `mise run dist` works
+# without a separate setup step. Add "aarch64-pc-windows-msvc" if you opt into
+# the arm64 variant, and the *-msvc targets if you build release artifacts here.
+targets = ["i686-pc-windows-gnu", "x86_64-pc-windows-gnu"]

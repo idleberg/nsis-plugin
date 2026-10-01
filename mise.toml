@@ -1,0 +1,100 @@
+[tools]
+hk = "latest"
+pkl = "latest"
+
+# The Rust toolchain and its cross targets come from rust-toolchain.toml, so
+# that `rustup target add` is never a separate step.
+
+[env]
+HK_MISE = 1
+# Where `nsis:longstring` puts the /DNSIS_MAX_STRLEN=8192 build.
+NSIS_LONGSTRING_DIR = "{{config_root}}/.nsis-longstring"
+NSIS_VERSION = '''{{ exec(command="makensis -VERSION 2>/dev/null | tr -d 'v \n' || true") }}'''
+NSISDIR = '''{{ exec(command="makensis -HDRINFO 2>/dev/null | tr ',' '\n' | grep '^NSISDIR=' | cut -d= -f2 || true") }}'''
+
+[hooks]
+postinstall = "hk install --mise"
+
+[tasks.build]
+description = "Build the workspace for the host"
+run = "cargo build --release"
+
+[tasks.checks]
+description = "Run all checks (formatting, linting, tests)"
+depends = ["format:check", "lint", "test"]
+
+[tasks.format]
+description = "Format Rust code"
+run = "cargo fmt --all"
+
+[tasks."format:check"]
+description = "Check Rust code formatting"
+run = "cargo fmt --all --check"
+
+[tasks.lint]
+description = "Lint with Clippy, in both character widths"
+run = [
+  "cargo clippy --workspace --all-targets -- --deny warnings",
+  "cargo clippy -p nsis-plugin --no-default-features --features ansi,testing --all-targets -- --deny warnings",
+  # The runtime in rt.rs is Windows-only; host Clippy never compiles it.
+  "cargo clippy -p nsis-plugin --target i686-pc-windows-gnu -- --deny warnings",
+]
+
+[tasks.test]
+description = "Run host tests, in both character widths"
+run = [
+  "cargo test --workspace",
+  "cargo test -p nsis-plugin --no-default-features --features ansi",
+]
+
+[tasks.targets]
+description = "Show the build matrix and the Rust targets it maps to"
+run = "cargo xtask targets"
+
+[tasks.dist]
+description = "Build every variant in dist.toml and assemble dist/Plugins/"
+run = "cargo xtask dist"
+
+[tasks."dist:ansi"]
+description = "Also build x86-ansi (opt-in; see the note in dist.toml)"
+run = "cargo xtask dist --variant x86-ansi"
+
+[tasks."dist:arm64"]
+description = "Also build arm64-unicode (opt-in; see the note in dist.toml)"
+run = "cargo xtask dist --variant arm64-unicode"
+
+[tasks."dist:msvc"]
+description = "Build the release artifacts with the MSVC toolchain"
+run = "cargo xtask dist --toolchain msvc"
+
+[tasks.size]
+description = "Report DLL sizes against their budgets"
+run = "cargo xtask size"
+
+[tasks.smoke]
+description = "Build and run the smoke installer under Wine (stock makensis)"
+run = "cargo xtask smoke --variant x86-unicode --wine"
+
+[tasks."nsis:longstring"]
+description = "Build a /DNSIS_MAX_STRLEN=8192 makensis into .nsis-longstring/"
+run = '''
+set -eu
+if [ -x "$NSIS_LONGSTRING_DIR/bin/makensis" ]; then
+  echo "already built: $NSIS_LONGSTRING_DIR/bin/makensis"
+  exit 0
+fi
+mkdir -p "$NSIS_LONGSTRING_DIR/src"
+curl -fsSL "https://downloads.sourceforge.net/project/nsis/NSIS%203/$NSIS_VERSION/nsis-$NSIS_VERSION-src.tar.bz2" \
+  | tar -xj -C "$NSIS_LONGSTRING_DIR/src" --strip-components=1
+cd "$NSIS_LONGSTRING_DIR/src"
+# makensis *and* the exehead stubs must share NSIS_MAX_STRLEN, so build both.
+# Do not pass STRIP=0: the debug sections it keeps do not fit NSIS's linker
+# script with current binutils, and the resulting stubs are not loadable.
+scons install NSIS_MAX_STRLEN=8192 SKIPUTILS=all SKIPDOC=all PREFIX="$NSIS_LONGSTRING_DIR"
+"$NSIS_LONGSTRING_DIR/bin/makensis" -HDRINFO | tr ',' '\n' | grep NSIS_MAX_STRLEN
+'''
+
+[tasks."smoke:long"]
+description = "Run the smoke installer against the long-string makensis"
+depends = ["nsis:longstring"]
+run = "MAKENSIS=$NSIS_LONGSTRING_DIR/bin/makensis cargo xtask smoke --variant x86-unicode --wine"

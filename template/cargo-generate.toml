@@ -1,0 +1,17 @@
+[template]
+description = "An NSIS plug-in written in Rust, building all four target variants"
+cargo_generate_version = ">=0.18.0"
+
+# mise and GitHub Actions both use {{ }} for their own substitutions, so those
+# files are copied through untouched.
+exclude = ["mise.toml", ".github/workflows/ci.yml"]
+
+[placeholders.plugin_description]
+type = "string"
+prompt = "One-line description of the plug-in"
+default = "An NSIS plug-in written in Rust"
+
+[placeholders.author]
+type = "string"
+prompt = "Author"
+default = "Unknown"

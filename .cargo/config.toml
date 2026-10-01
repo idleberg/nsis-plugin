@@ -1,0 +1,11 @@
+[alias]
+xtask = "run --package xtask --release --"
+
+# Link the MSVC C runtime statically. A `std` plug-in otherwise imports
+# VCRUNTIME140.dll, which only exists where the VC++ redistributable was
+# installed, so the installer would fail to load the plug-in on a clean
+# machine. The UCRT stays dynamic in effect: it ships with Windows 10, which
+# Rust's `std` requires anyway. `no_std` plug-ins link with /NODEFAULTLIB and
+# are unaffected.
+[target.'cfg(target_env = "msvc")']
+rustflags = ["-C", "target-feature=+crt-static"]

@@ -1,0 +1,9 @@
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]
+
+# rustup installs these on the first cargo invocation, so cross-compiling the
+# build matrix needs no separate setup step. The MSVC targets are added
+# explicitly by the release job, since they are only usable on Windows or under
+# cargo-xwin, and aarch64 is opt-in — see dist.toml.
+targets = ["i686-pc-windows-gnu", "x86_64-pc-windows-gnu"]

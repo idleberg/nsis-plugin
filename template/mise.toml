@@ -1,0 +1,101 @@
+# The Rust toolchain and its cross targets come from rust-toolchain.toml.
+
+[env]
+DIST = "dist/Plugins"
+
+[tasks.checks]
+description = "Run all checks (formatting, linting, tests)"
+depends = ["format:check", "lint", "test"]
+
+[tasks.format]
+description = "Format Rust code"
+run = "cargo fmt --all"
+
+[tasks."format:check"]
+description = "Check Rust code formatting"
+run = "cargo fmt --all --check"
+
+[tasks.lint]
+description = "Lint with Clippy"
+run = "cargo clippy --all-targets -- --deny warnings"
+
+[tasks.test]
+description = "Run host tests"
+run = "cargo test"
+
+[tasks.dist]
+description = "Build every variant and assemble dist/Plugins/"
+run = '''
+set -eu
+# The cdylib file name is the [lib] name, i.e. the package name underscored.
+NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -1 | tr '-' '_')
+TOOLCHAIN="${TOOLCHAIN:-gnu}"
+VARIANTS="${VARIANTS:-x86-unicode amd64-unicode}"
+
+rm -rf "$DIST"
+for variant in $VARIANTS; do
+  case "$variant" in
+    x86-ansi)      arch=i686;    feature=ansi ;;
+    x86-unicode)   arch=i686;    feature=unicode ;;
+    amd64-unicode) arch=x86_64;  feature=unicode ;;
+    arm64-unicode) arch=aarch64; feature=unicode ;;
+    *) echo "unknown variant: $variant" >&2; exit 1 ;;
+  esac
+  case "$TOOLCHAIN" in
+    gnu)  [ "$arch" = aarch64 ] && env=gnullvm || env=gnu ;;
+    msvc) env=msvc ;;
+    *) echo "unknown toolchain: $TOOLCHAIN" >&2; exit 1 ;;
+  esac
+  target="$arch-pc-windows-$env"
+
+  echo "== $variant ($target) =="
+  cargo build --release --target "$target" --no-default-features --features "$feature"
+
+  mkdir -p "$DIST/$variant"
+  cp "target/$target/release/$NAME.dll" "$DIST/$variant/"
+  echo "   $DIST/$variant/$NAME.dll ($(wc -c < "$DIST/$variant/$NAME.dll") bytes)"
+done
+'''
+
+[tasks.size]
+description = "Report DLL sizes, and fail if any exceeds SIZE_BUDGET"
+run = '''
+set -eu
+# A plug-in DLL is embedded in every installer built with it, so size creep is
+# worth failing a build over. i686-pc-windows-gnu is legitimately large: see
+# the README.
+BUDGET="${SIZE_BUDGET:-65536}"
+status=0
+for dll in "$DIST"/*/*.dll; do
+  bytes=$(wc -c < "$dll")
+  if [ "$bytes" -gt "$BUDGET" ]; then
+    echo "OVER BUDGET  $dll  $bytes > $BUDGET"
+    status=1
+  else
+    echo "ok           $dll  $bytes"
+  fi
+done
+exit $status
+'''
+
+[tasks.smoke]
+description = "Build the smoke installer with makensis and run it under Wine"
+depends = ["dist"]
+run = '''
+set -eu
+VARIANT="${VARIANT:-x86-unicode}"
+MAKENSIS="${MAKENSIS:-makensis}"
+mkdir -p dist/smoke
+rm -f dist/smoke/smoke.log
+
+"$MAKENSIS" \
+  "-DPLUGINDIR=$PWD/$DIST/$VARIANT" \
+  "-DOUTFILE=$PWD/dist/smoke/smoke.exe" \
+  "-XTarget $VARIANT" \
+  test/smoke.nsi
+
+wine dist/smoke/smoke.exe /S
+cat dist/smoke/smoke.log
+grep -q FAIL dist/smoke/smoke.log && exit 1
+echo "smoke test passed"
+'''

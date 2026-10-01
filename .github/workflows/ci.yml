@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # Host-native: formatting, lints and the unit tests, in both character
+  # widths. No Windows and no installer in the loop.
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+
+      - name: Install Rust toolchain
+        run: rustup component add rustfmt clippy
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+      - name: Check formatting
+        run: mise run format:check
+
+      - name: Lint code
+        run: mise run lint
+
+      - name: Run tests
+        run: mise run test
+
+      # Fails on a PR, not at release time, if `include` drops something.
+      - name: Check the package
+        run: cargo publish --dry-run --package nsis-plugin
+
+  # The build matrix. GNU cross-compiles from Linux; MSVC is built natively on
+  # Windows. Both must produce the same undecorated export names.
+  matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - toolchain: gnu
+            os: ubuntu-latest
+            targets: i686-pc-windows-gnu x86_64-pc-windows-gnu
+          - toolchain: msvc
+            os: windows-latest
+            targets: i686-pc-windows-msvc x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+
+      - name: Install mingw-w64
+        if: matrix.toolchain == 'gnu'
+        run: sudo apt-get update && sudo apt-get install -y mingw-w64
+
+      - name: Install Rust targets
+        run: rustup target add ${{ matrix.targets }}
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          key: ${{ matrix.toolchain }}
+
+      # Also enforces the per-variant size budgets in dist.toml.
+      - name: Build every variant
+        run: |
+          cargo xtask dist --toolchain ${{ matrix.toolchain }}
+          cargo xtask dist --toolchain ${{ matrix.toolchain }} --variant x86-ansi
+
+      - name: Upload Plugins tree
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Plugins-${{ matrix.toolchain }}
+          path: dist/Plugins/
+
+  # The layer unit tests structurally cannot see: export names, calling
+  # convention and the stack protocol, exercised by a real installer.
+  #
+  # Both a stock makensis (NSIS_MAX_STRLEN=1024) and one built with 8192. The
+  # smoke script asks the plug-in for the installer's string_size and
+  # round-trips exactly that many characters, so the same unmodified DLL is
+  # proven correct at both.
+  smoke:
+    needs: matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [x86-ansi, x86-unicode]
+        strlen: [1024, 8192]
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+
+      - name: Install build and run dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 wine wine32
+
+      # large-strings rebuilds makensis and the exehead stubs together, which
+      # is what NSIS_MAX_STRLEN=8192 requires.
+      - name: Set up NSIS
+        uses: nsis-dev/setup-nsis@99783963764acafc24a5e3335ddfce26d03c20a2 # v1.2.1
+        with:
+          large-strings: ${{ matrix.strlen == 8192 }}
+
+      - name: Install Rust targets
+        run: rustup target add i686-pc-windows-gnu x86_64-pc-windows-gnu
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          key: smoke
+
+      - name: Build the plug-in
+        run: cargo xtask dist --variant ${{ matrix.variant }}
+
+      - name: Run the smoke test
+        env:
+          WINEDEBUG: -all
+        run: cargo xtask smoke --variant ${{ matrix.variant }} --wine
+
+      - name: Show the log
+        if: always()
+        run: cat dist/smoke/smoke.log || true
+
+  # arm64 has no makensis and no exehead yet, so this only proves it compiles
+  # and links. It is opt-in for users and non-blocking here for the same reason.
+  arm64:
+    runs-on: windows-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
+
+      - name: Install Rust target
+        run: rustup target add aarch64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          key: arm64
+
+      - name: Build arm64-unicode
+        run: cargo xtask dist --variant arm64-unicode --toolchain msvc

@@ -1,0 +1,19 @@
+# build artifacts
+/result
+/target
+/dist
+# `mise run nsis:longstring`
+/.nsis-longstring
+
+# all things nodejs
+node_modules/
+bun.lock
+package-lock.json
+
+# AI stuff
+!.claude/settings.json
+.code-review-graph/
+
+# test output
+*.exe
+!examples/hello/test/*.exe
