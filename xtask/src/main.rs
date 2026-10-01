@@ -455,8 +455,8 @@ fn smoke(args: Args) -> Res<()> {
 	// particular one built with /DNSIS_MAX_STRLEN=8192.
 	let override_makensis = std::env::var("MAKENSIS").ok();
 	let mut cmd = Command::new(override_makensis.as_deref().unwrap_or("makensis"));
-	// makensis takes its stubs from $NSISDIR when set, and mise.toml sets it to
-	// the stock install. A custom makensis would then silently pair itself with
+	// makensis takes its stubs from $NSISDIR when set, and a user environment
+	// may point it at the stock install. A custom makensis would then silently pair itself with
 	// stock 1024-character exeheads, so let it find its own.
 	if override_makensis.is_some() {
 		cmd.env_remove("NSISDIR");

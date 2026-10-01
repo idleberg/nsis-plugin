@@ -9,8 +9,6 @@ pkl = "latest"
 HK_MISE = 1
 # Where `nsis:longstring` puts the /DNSIS_MAX_STRLEN=8192 build.
 NSIS_LONGSTRING_DIR = "{{config_root}}/.nsis-longstring"
-NSIS_VERSION = '''{{ exec(command="makensis -VERSION 2>/dev/null | tr -d 'v \n' || true") }}'''
-NSISDIR = '''{{ exec(command="makensis -HDRINFO 2>/dev/null | tr ',' '\n' | grep '^NSISDIR=' | cut -d= -f2 || true") }}'''
 
 [hooks]
 postinstall = "hk install --mise"
@@ -83,6 +81,7 @@ if [ -x "$NSIS_LONGSTRING_DIR/bin/makensis" ]; then
   echo "already built: $NSIS_LONGSTRING_DIR/bin/makensis"
   exit 0
 fi
+NSIS_VERSION=$(makensis -VERSION | tr -d 'v \n')
 mkdir -p "$NSIS_LONGSTRING_DIR/src"
 curl -fsSL "https://downloads.sourceforge.net/project/nsis/NSIS%203/$NSIS_VERSION/nsis-$NSIS_VERSION-src.tar.bz2" \
   | tar -xj -C "$NSIS_LONGSTRING_DIR/src" --strip-components=1
