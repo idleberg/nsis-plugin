@@ -4,13 +4,15 @@ version = "0.1.0"
 description = "{{plugin_description}}"
 authors = ["{{author}}"]
 edition = "2024"
-license = "MIT"
+license = "Apache-2.0"
 publish = false
 
 [lib]
 # The DLL file name is the plug-in namespace in a script: `{{crate_name}}::Hello`.
 name = "{{crate_name}}"
 crate-type = ["cdylib"]
+# NSISDIR layout, required by nsis-dev/build-plugin.
+path = "Contrib/{{crate_name}}/lib.rs"
 
 [dependencies]
 nsis-plugin = { version = "0.1", default-features = false, features = ["mem-intrinsics"] }

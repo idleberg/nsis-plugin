@@ -253,6 +253,9 @@ dist.toml               what to build, with what, and how big it may be
 cargo generate --git https://github.com/idleberg/nsis-plugin template
 ```
 
+Generated plug-ins default to Apache-2.0; swap `LICENSE` and the `license`
+field in `Cargo.toml` for your own.
+
 ## Non-goals
 
 Wrapping Win32 broadly (use `windows-sys`), modelling custom pages or the

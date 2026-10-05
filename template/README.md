@@ -58,6 +58,13 @@ native on Windows, or `cargo-xwin` elsewhere.
 TOOLCHAIN=msvc mise run dist
 ```
 
+## Releasing
+
+The source lives in `Contrib/{{crate_name}}/`, the NSISDIR layout that
+[nsis-dev/build-plugin](https://github.com/nsis-dev/build-plugin) expects.
+Publishing a GitHub release runs `.github/workflows/release.yml`, which builds
+the MSVC DLLs and attaches a zip, an installer and `SHA256SUMS` to the release.
+
 ## Testing
 
 ```sh
@@ -91,4 +98,4 @@ the release artifacts.
 
 ## License
 
-MIT
+[Apache-2.0](LICENSE)
