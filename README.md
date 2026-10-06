@@ -34,6 +34,8 @@ nsis_fn! {
 }
 ```
 
+The function is called through the DLL's name. If your crate is `example`, it builds `example.dll`:
+
 ```nsis
 Push 2
 Push 40
