@@ -1,58 +1,84 @@
 [package]
 name = "nsis-plugin"
 version = "0.1.0"
-description = "Write NSIS plug-ins in Rust, correct across every NSIS build variant"
-documentation = "https://docs.rs/nsis-plugin"
-homepage = "https://github.com/idleberg/nsis-plugin"
-keywords = ["nsis", "plugin", "installer", "windows", "ffi"]
-categories = ["api-bindings", "os::windows-apis", "no-std"]
-readme = "README.md"
-include = ["/src", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE"]
-# `examples/hello` is a workspace member with its own manifest, not a cargo example.
+include = [
+    "/src",
+    "/README.md",
+    "/LICENSE-MIT",
+    "/LICENSE-APACHE",
+]
 autoexamples = false
-authors.workspace = true
-edition.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
+description = "Write NSIS plug-ins in Rust, correct across every NSIS build variant"
+homepage = "https://github.com/idleberg/nsis-plugin"
+documentation = "https://docs.rs/nsis-plugin"
+readme = "README.md"
+keywords = [
+    "nsis",
+    "plugin",
+    "installer",
+    "windows",
+    "ffi",
+]
+categories = [
+    "api-bindings",
+    "os::windows-apis",
+    "no-std",
+]
 
-[features]
-default = ["unicode", "mem-intrinsics"]
+[package.edition]
+workspace = true
 
-# Character width. Mutually exclusive; see `Tchar`.
-unicode = []
-ansi = []
+[package.rust-version]
+workspace = true
 
-# Provide `memcpy`/`memset`/`memmove`/`memcmp` so a plug-in can link with
-# `-nodefaultlibs`. Turn off if you link against a CRT that already has them.
-mem-intrinsics = []
+[package.authors]
+workspace = true
 
-# Opt into `std` (bigger DLL, but `std` types and `catch_unwind` are available).
-std = []
+[package.license]
+workspace = true
 
-# The `TestInstaller` harness, for testing plug-in logic on macOS and Linux.
-testing = []
+[package.repository]
+workspace = true
 
 [package.metadata.docs.rs]
 all-features = false
-targets = ["x86_64-pc-windows-msvc", "i686-pc-windows-msvc"]
+targets = [
+    "x86_64-pc-windows-msvc",
+    "i686-pc-windows-msvc",
+]
+
+[features]
+ansi = []
+default = [
+    "unicode",
+    "mem-intrinsics",
+]
+mem-intrinsics = []
+std = []
+testing = []
+unicode = []
 
 [workspace]
-members = [".", "examples/hello", "xtask"]
+members = [
+    ".",
+    "examples/hello",
+    "my-plugin",
+    "xtask",
+]
 resolver = "3"
 
 [workspace.package]
 authors = ["Jan T. Sott"]
-edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/idleberg/nsis-plugin"
+edition = "2024"
 rust-version = "1.85"
 
-[workspace.dependencies]
-nsis-plugin = { path = ".", version = "0.1.0", default-features = false }
+[workspace.dependencies.nsis-plugin]
+version = "0.1.0"
+path = "."
+default-features = false
 
-# Shared by every plug-in cdylib in this workspace. The template ships the same
-# profile, because a plug-in DLL is embedded in every installer built with it.
 [profile.release]
 opt-level = "z"
 lto = "fat"

@@ -49,7 +49,7 @@ Generate a new plug-in from the template:
 cargo generate --git https://github.com/idleberg/nsis-plugin template
 ```
 
-Generated plug-ins are licensed under Apache-2.0. Replace `LICENSE` and the `license` field in `Cargo.toml` to use your own.
+The template asks for an [SPDX license identifier](https://spdx.org/licenses/). Apache-2.0 is the default; other texts are downloaded when you generate.
 
 To add the crate to an existing project instead:
 

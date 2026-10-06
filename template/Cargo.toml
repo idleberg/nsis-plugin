@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "{{plugin_description}}"
 authors = ["{{author}}"]
 edition = "2024"
-license = "Apache-2.0"
+license = "{{license}}"
 publish = false
 
 [lib]

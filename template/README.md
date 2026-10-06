@@ -98,4 +98,4 @@ the release artifacts.
 
 ## License
 
-[Apache-2.0](LICENSE)
+This work is licensed under {{license}}.

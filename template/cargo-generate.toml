@@ -15,3 +15,17 @@ default = "An NSIS plug-in written in Rust"
 type = "string"
 prompt = "Author"
 default = "Unknown"
+
+[placeholders.license]
+type = "string"
+prompt = "License (SPDX identifier, e.g. Apache-2.0, MIT, MPL-2.0 or MIT OR Apache-2.0)"
+default = "Apache-2.0"
+# The value ends up in a shell command in `license.rhai`.
+regex = "^[A-Za-z0-9.+-]+( (OR|AND) [A-Za-z0-9.+-]+)*$"
+
+# Apache-2.0 is bundled. Anything else is downloaded by the hook.
+[conditional.'license != "Apache-2.0"']
+ignore = ["LICENSE"]
+
+[hooks]
+post = ["license.rhai"]
