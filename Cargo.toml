@@ -62,7 +62,6 @@ unicode = []
 members = [
     ".",
     "examples/hello",
-    "my-plugin",
     "xtask",
 ]
 resolver = "3"
