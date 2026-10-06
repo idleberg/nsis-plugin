@@ -7,68 +7,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  # The release artifacts are the MSVC builds, native on Windows.
-  plugins:
-    runs-on: windows-latest
-
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Set up mise
-        uses: jdx/mise-action@e6a8b3978addb5a52f2b4cd9d91eafa7f0ab959d # v4.2.0
-
-      - name: Install Rust targets
-        run: rustup target add i686-pc-windows-msvc x86_64-pc-windows-msvc aarch64-pc-windows-msvc
-
-      - name: Cache Rust build
-        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-
-      # x86-ansi and arm64 are opt-in for day-to-day builds but are shipped in
-      # releases: ANSI for legacy installers, arm64 so that anyone with an arm64
-      # NSIS has something to try.
-      - name: Build every variant
-        run: |
-          cargo xtask dist --toolchain msvc
-          cargo xtask dist --toolchain msvc --variant x86-ansi --variant arm64-unicode
-
-      - name: Package the Plugins tree
-        shell: bash
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          7z a "nsis-plugin-example-${VERSION}.zip" ./dist/Plugins LICENSE-MIT LICENSE-APACHE README.md
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: plugins
-          path: nsis-plugin-example-*.zip
-
-  create-release:
-    needs: plugins
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          merge-multiple: true
-
-      - name: Generate checksums
-        run: sha256sum nsis-plugin-example-*.zip > SHA256SUMS
-
-      - name: Create release
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
-        with:
-          files: |
-            nsis-plugin-example-*.zip
-            SHA256SUMS
-
   publish-to-crates:
-    needs: plugins
     runs-on: ubuntu-latest
 
     steps:
