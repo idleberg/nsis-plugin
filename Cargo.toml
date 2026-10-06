@@ -7,7 +7,7 @@ homepage = "https://github.com/idleberg/nsis-plugin"
 keywords = ["nsis", "plugin", "installer", "windows", "ffi"]
 categories = ["api-bindings", "os::windows-apis", "no-std"]
 readme = "README.md"
-include = ["/src", "/README.md", "/LICENSE"]
+include = ["/src", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE"]
 # `examples/hello` is a workspace member with its own manifest, not a cargo example.
 autoexamples = false
 authors.workspace = true
@@ -44,7 +44,7 @@ resolver = "3"
 [workspace.package]
 authors = ["Jan T. Sott"]
 edition = "2024"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/idleberg/nsis-plugin"
 rust-version = "1.85"
 

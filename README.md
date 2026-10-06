@@ -137,4 +137,4 @@ This crate does not wrap Win32 (use [`windows-sys`](https://crates.io/crates/win
 
 ## License
 
-This work is licensed under [The MIT License](LICENSE).
+This work is licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
