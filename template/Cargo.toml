@@ -11,7 +11,7 @@ publish = false
 # The DLL file name is the plug-in namespace in a script: `{{crate_name}}::Hello`.
 name = "{{crate_name}}"
 crate-type = ["cdylib"]
-# NSISDIR layout, required by nsis-dev/build-plugin.
+# NSISDIR layout, required by nsis-dev/release-package.
 path = "Contrib/{{crate_name}}/lib.rs"
 
 [dependencies]
