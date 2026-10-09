@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: nsis-dev/release-package@cde8e8f889db320207fe80d3bd90fe63922d680f # v0.2.0
+      - uses: nsis-dev/release-package@489fbb8cb19ff58dfd029c50b5cc0c5d693e576f # v0.4.1
         with:
           name: {{crate_name}}
           project: Cargo.toml
